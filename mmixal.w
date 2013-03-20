@@ -1040,7 +1040,7 @@ Char *err_buf; /* place where dynamic error messages are sprinted */
 if (!fgets(buffer,buf_size+1,src_file)) break;
 line_no++;
 line_listed=false;
-j=strlen(buffer);
+j=(int)strlen(buffer);
 if (buffer[j-1]=='\n') buffer[j-1]='\0'; /* remove the newline */
 else if ((j=fgetc(src_file))!=EOF)
   @<Flush the excess part of an overlong line@>;
@@ -1282,9 +1282,9 @@ void mmo_out() /* output the contents of |mmo_buf| */
 
 @ @<Sub...@>=
 void mmo_tetra @,@,@[ARGS((tetra))@];
-void mmo_byte @,@,@[ARGS((unsigned char))@];
-void mmo_lop @,@,@[ARGS((char,unsigned char,unsigned char))@];
-void mmo_lopp @,@,@[ARGS((char,unsigned short))@];
+void mmo_byte @,@,@[ARGS((unsigned int))@];
+void mmo_lop @,@,@[ARGS((int,unsigned int,unsigned int))@];
+void mmo_lopp @,@,@[ARGS((int,unsigned int))@];
 void mmo_tetra(t) /* output a tetrabyte */
   tetra t;
 {
@@ -1294,23 +1294,23 @@ void mmo_tetra(t) /* output a tetrabyte */
 }
 @#
 void mmo_byte(b)
-  unsigned char b;
+  unsigned int b;
 {
   mmo_buf[(mmo_ptr++)&3]=b;
   if (!(mmo_ptr&3)) mmo_out();
 }
 @#
 void mmo_lop(x,y,z) /* output a loader operation */
-  char x;
-  unsigned char y,z;
+  int x;
+  unsigned int y,z;
 {
   mmo_buf[0]=mm;@+ mmo_buf[1]=x;@+ mmo_buf[2]=y;@+ mmo_buf[3]=z;
   mmo_out();
 }
 @#
 void mmo_lopp(x,yz) /* output a loader operation with two-byte operand */
-  char x;
-  unsigned short yz;
+  int x;
+  unsigned int yz;
 {
   mmo_buf[0]=mm;@+ mmo_buf[1]=x;@+
   mmo_buf[2]=yz>>8;@+ mmo_buf[3]=yz&0xff;
@@ -1346,7 +1346,7 @@ line number in the output file agree with |cur_file| and |line_no|.
 void mmo_sync @,@,@[ARGS((void))@];@+@t}\6{@>
 void mmo_sync()
 {
-  register int j; register unsigned char *p;
+  register int j; register Char *p;
   if (cur_file!=mmo_cur_file) {
     if (filename_passed[cur_file]) mmo_lop(lop_file,cur_file,0);
     else {
@@ -1385,11 +1385,11 @@ of~|k|. The |x_bits| parameter tells which bytes, if any, are part of
 a future reference.
 
 @<Sub...@>=
-void assemble @,@,@[ARGS((char,tetra,unsigned char))@];@+@t}\6{@>
+void assemble @,@,@[ARGS((int,tetra,unsigned int))@];@+@t}\6{@>
 void assemble(k,dat,x_bits)
-  char k;
+  int k;
   tetra dat;
-  unsigned char x_bits;
+  unsigned int x_bits;
 {
   register int j,jj,l;
   if (spec_mode) l=spec_mode_loc;
@@ -1476,10 +1476,10 @@ trie_node *trie_search(t,s)
   Char *s;
 {
   register trie_node *tt=t;
-  register Char *p=s;
+  register unsigned char *p=(unsigned char *)s;
   while (1) {
     if (!isletter(*p) && !isdigit(*p)) {
-      terminator=p;@+return tt;
+      terminator=(Char*)p;@+return tt;
     }
     if (tt->mid) {
       tt=tt->mid;
@@ -2215,7 +2215,7 @@ character in |sym_buf|.
     m+=8, x=t->sym->equiv.h-0x20000000; /* data segment */
   else x=t->sym->equiv.h;
   if (x) m+=4;@+ else x=t->sym->equiv.l;
-  for (j=1;j<4;j++) if (x<(1<<(8*j))) break;
+  for (j=1;j<4;j++) if (x<(unsigned int)(1<<(8*j))) break;
   m+=j;
 }
 
@@ -2467,6 +2467,7 @@ switch(*p++) {
 
 @ @<Perform the top operation on |op_stack|@>=
 switch(op_stack[--op_ptr]) {
+ case outer_rp: case inner_rp: goto scan_close; /* should not happen */
  case inner_lp:@+if (rt_op==inner_rp) goto scan_close;
   err("*missing right parenthesis");@+break;
 @.missing right parenthesis@>
@@ -2710,6 +2711,7 @@ if its predefined value has already been used.
   sym_node *new_link=DEFINED;
   acc=cur_loc;
   if (opcode==IS) {
+    if (val_stack[0].status==undefined) err("the operand is undefined");
     cur_loc=val_stack[0].equiv;
     if (val_stack[0].status==reg_val) new_link=REGISTER;
   }@+else if (opcode==GREG) cur_loc.h=0, cur_loc.l=cur_greg, new_link=REGISTER;
@@ -2799,12 +2801,13 @@ else {
 }
 
 @ @<Make special listing to show the label equivalent@>=
-if (new_link==DEFINED) {
+{ if (new_link==DEFINED) {
   fprintf(listing_file,"(%08x%08x)",cur_loc.h,cur_loc.l);
   flush_listing_line(" ");
 }@+else {
   fprintf(listing_file,"($%03d)",cur_loc.l&0xff);
   flush_listing_line("             ");
+}
 }
 
 @ @<Do the operation@>=
@@ -2815,10 +2818,11 @@ case 1:@+if (!(op_bits&one_arg_bit))
     derr("opcode `%s' needs more than one operand",op_field);
 @.opcode...operand(s)@>
   @<Do a one-operand operation@>;
-case 2:@+if (!(op_bits&two_arg_bit))
+case 2:@+if (!(op_bits&two_arg_bit)) {
     if (op_bits&one_arg_bit)
       derr("opcode `%s' must not have two operands",op_field)@;
     else derr("opcode `%s' must have more than two operands",op_field);
+  @+}
   if ((op_bits&(three_arg_bit+mem_bit))==three_arg_bit) goto make_two_three;
   @<Do a two-operand operation@>;
 make_two_three: val_stack[2]=val_stack[1], val_ptr=3;
@@ -2839,10 +2843,11 @@ for (j=0;j<val_ptr;j++) {
   k=1<<(opcode-BYTE);
   if ((val_stack[j].equiv.h && opcode<OCTA) ||@|
            (val_stack[j].equiv.l>0xffff && opcode<TETRA) ||@|
-           (val_stack[j].equiv.l>0xff && opcode<WYDE))
+           (val_stack[j].equiv.l>0xff && opcode<WYDE)) {
     if (k==1) err("*constant doesn't fit in one byte")@;
 @.constant doesn't fit...@>
     else derr("*constant doesn't fit in %d bytes",k);
+  @+}
   if (k<8) assemble(k,val_stack[j].equiv.l,0);
   else if (val_stack[j].status==undefined)
     assemble(4,0,0xf0), assemble(4,0,0xf0);
@@ -3093,7 +3098,7 @@ switch(opcode) {
    cur_prefix=val_stack[0].link;@+goto bypass;
  case GREG:@+if (listing_file) @<Make listing for |GREG|@>;
    goto bypass;
- case LOCAL:@+if (val_stack[0].equiv.l>lreg) lreg=val_stack[0].equiv.l;
+ case LOCAL:@+if (val_stack[0].equiv.l>(unsigned int)lreg) lreg=val_stack[0].equiv.l;
    if (listing_file) {
      fprintf(listing_file,"($%03d)",val_stack[0].equiv.l);
      flush_listing_line("             ");
@@ -3112,7 +3117,7 @@ switch(opcode) {
 octa greg_val[256]; /* initial values of global registers */
 
 @ @<Make listing for |GREG|@>=
-if (val_stack[0].equiv.l || val_stack[0].equiv.h) {
+{if (val_stack[0].equiv.l || val_stack[0].equiv.h) {
   fprintf(listing_file,"($%03d=#%08x",cur_greg,val_stack[0].equiv.h);
   flush_listing_line("    ");
   fprintf(listing_file,"         %08x)",val_stack[0].equiv.l);
@@ -3120,6 +3125,7 @@ if (val_stack[0].equiv.l || val_stack[0].equiv.h) {
 }@+else {
   fprintf(listing_file,"($%03d)",cur_greg);
   flush_listing_line("             ");
+}
 }
 
 @* Running the program. On a \UNIX/-like system, the command
@@ -3203,7 +3209,7 @@ src_file=fopen(src_file_name,"r");
 if (!src_file) dpanic("Can't open the source file %s",src_file_name);
 @.Can't open...@>
 if (!obj_file_name[0]) {
-  j=strlen(src_file_name);
+  j=(int)strlen(src_file_name);
   if (src_file_name[j-1]=='s') {
     strcpy(obj_file_name,src_file_name);@+ obj_file_name[j-1]='o';
   } else sprintf(obj_file_name,"%s.mmo",src_file_name);
