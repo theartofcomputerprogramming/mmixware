@@ -1,0 +1,395 @@
+CHANGES from version 1.0 to version 1.1
+Elimination of Compiler Complaints
+---------------------------------------------------------------------------
+
+Goal to have gcc -Wall compile all files without warnings.
+
+To find the maximum of possible compiler complaints we used:
+gcc -ggdb -Wall -pedantic -Wformat -Wformat-nonliteral -Wunused-variable 
+-Wextra -Wtraditional -Wunreachable-code   -c -o mmix-arith.o mmix-arith.c
+
+The changes go into 8 different categories:
+1. Formatless use of Printf
+2. Replacing label "abort"
+3. Eliminating unused labels
+4. making promoted arguments match prototypes.
+5. Adding default cases to switch statements
+6. Adding explicit braces to avoid ambiguous else
+7. Using unused parameter
+8. Mixing signed and unsigned quantities in comparison and assignment
+9. Eliminating possible uninitialized variables
+
+1. Formatless use of Printf
+---------------------------
+There is a bug in mmix-sim.w line 3099:
+mmix-sim.w: In function 'main':
+mmix-sim.w:3099: warning: format not a string literal and no format arguments
+<       if (command_buf[0]==' ') printf(command_buf);
+---
+>       if (command_buf[0]==' ') printf("%s",command_buf);
+A command file containing a substring like "%s" can crash mmix.
+
+As a follow up, all occurrences of printf without a format string were changed
+adding a "%s" format string in:
+
+mmix-sim.w:2824, 2835, 2837, 2970, 2972, 3076.
+mmix-pipe.w:1885:
+
+
+2. Replacing label "abort"
+--------------------------
+mmix-io.w:106: warning: traditional C lacks a separate namespace for labels, 
+               identifier 'abort' conflicts
+
+<   if (mode.h || mode.l>4) goto abort;
+<   if (mmgetchars(name_buf,FILENAME_MAX,name,0)==FILENAME_MAX) goto abort;
+---
+>   if (mode.h || mode.l>4) goto failure;
+>   if (mmgetchars(name_buf,FILENAME_MAX,name,0)==FILENAME_MAX) goto failure;
+
+<   if (!sfile[handle].fp) goto abort;
+---
+>   if (!sfile[handle].fp) goto failure;
+
+<  abort: sfile[handle].mode=0;
+---
+>  failure: sfile[handle].mode=0;
+
+
+3. Eliminating unused labels
+----------------------------
+mmix-arith.w:1354: warning: label 'no_const_found' defined but not used
+mmix-arith.w:1480: warning: label 'make_it_zero' defined but not used
+mmix-sim.w:3079: warning: label 'check_syntax' defined but not used
+mmix-pipe.w:240: warning: label 'cease' defined but not used
+
+
+4. Making promoted arguments match prototypes
+---------------------------------------------
+Standard C promotes arguments before passing parameters. Using int
+instead of char eliminates this problem.
+
+mmixal.w:1298: warning: promoted argument 'b' doesn't match prototype
+< void mmo_byte @,@,@[ARGS((unsigned char))@];
+< void mmo_lop @,@,@[ARGS((char,unsigned char,unsigned char))@];
+< void mmo_lopp @,@,@[ARGS((char,unsigned short))@];
+< void assemble @,@,@[ARGS((char,tetra,unsigned char))@];@+@t}\6{@>
+---
+> void mmo_byte @,@,@[ARGS((unsigned int))@];
+> void mmo_lop @,@,@[ARGS((int,unsigned int,unsigned int))@];
+> void mmo_lopp @,@,@[ARGS((int,unsigned short))@];
+> void assemble @,@,@[ARGS((int,tetra,unsigned int))@];@+@t}\6{@>
+
+In mmix-io.w handle becomes an int in all prototypes.
+like this:
+< octa mmix_fopen @,@,@[ARGS((unsigned char,octa,octa))@];@+@t}\6{@>
+---
+> octa mmix_fopen @,@,@[ARGS((unsigned int,octa,octa))@];@+@t}\6{@>
+
+mmix-arith.w:502: warning: prototype declaration
+< octa fpack @,@,@[ARGS((octa,int,char,int))@];@+@t}\6{@>
+< tetra sfpack @,@,@[ARGS((octa,int,char,int))@];@+@t}\6{@>
+---
+> octa fpack @,@,@[ARGS((octa,int,int,int))@];@+@t}\6{@>
+> tetra sfpack @,@,@[ARGS((octa,int,int,int))@];@+@t}\6{@>
+
+
+5. Adding default cases to switch statements
+--------------------------------------------
+mmix-arith.w:338: warning: control reaches end of non-void function
+<  case 0+0: return q;
+---
+>  case 0+0: default: return q;
+
+mmix-arith.w:719
+<  case 4*zro+zro: case 4*zro+num: case 4*num+zro: x=zero_octa;@+break;
+---
+>  default: case 4*zro+zro: case 4*zro+num: case 4*num+zro: x=zero_octa;@+break;
+
+mmix-arith.w:765
+<  case 4*zro+zro: case 4*inf+inf: x=standard_NaN;
+---
+>  default: case 4*zro+zro: case 4*inf+inf: x=standard_NaN;
+
+mmix-arith.w:812
+<  case 4*zro+zro: x=zero_octa;
+---
+>  default: case 4*zro+zro: x=zero_octa;
+
+mmix-arith.w:1590
+<  case 4*zro+zro: return 0;
+---
+>  default: case 4*zro+zro: return 0;
+
+mmix-arith.w:1625: warning: control reaches end of non-void function
+<  case inf: case zro: return z;
+---
+>  case inf: case zro: default: return z;
+
+mmix-arith.w:1675: warning: control reaches end of non-void function
+<  case zro: return zero_octa;
+---
+>  case zro: default: return zero_octa;
+
+mmix-arith.w:1735
+<  case inf: case zro: x=z;@+break;
+---
+>  default: case inf: case zro: x=z;@+break;
+
+mmix-arith.w:1794
+<  zero_out: x=zero_octa;
+---
+>  default: zero_out: x=zero_octa;
+
+mmix-pipe.w:3402: warning: control reaches end of non-void function
+<   panic(confusion("lru victim")); /* what happened? nobody has rank zero */
+---
+>  default: panic(confusion("lru victim"));  /* what happened? ... */
+
+mmixal.w:2469: warning: enumeration value 'inner_rp' not handled in switch
+>  case outer_rp: case inner_rp: goto scan_close; /* should not happen */
+
+adding a plain "default: ;" in the following cases:
+mmix-pipe.w:6171: warning: enumeration value 'TRAP' not handled in switch
+mmix-pipe.w:2498: warning: enumeration value 'mul0' not handled in switch
+mmix-pipe.w:4862: warning: enumeration value 'mul0' not handled in switch
+mmix-pipe.w:5075: warning: enumeration value 'resum' not handled in switch
+
+
+6. Adding explicit braces to avoid ambiguous else
+-------------------------------------------------
+mmixal.w:2734: warning: suggest explicit braces to avoid ambiguous 'else'
+mmixal.w:2818: warning: suggest explicit braces to avoid ambiguous 'else'
+mmixal.w:2840: warning: suggest explicit braces to avoid ambiguous 'else'
+mmixal.w:3094: warning: suggest explicit braces to avoid ambiguous 'else'
+mmix-sim.w:1182: warning: suggest explicit braces to avoid ambiguous 'else'
+mmix-sim.w:3097: warning: suggest explicit braces to avoid ambiguous 'else'
+mmix-sim.w:1366: warning: suggest explicit braces to avoid ambiguous 'else'
+mmix-pipe.w:5323: warning: suggest explicit braces to avoid ambiguous 'else'
+mmix-pipe.w:5328: warning: suggest explicit braces to avoid ambiguous 'else'
+mmix-pipe.w:4932: warning: suggest explicit braces to avoid ambiguous 'else'
+mmix-pipe.w:4934: warning: suggest explicit braces to avoid ambiguous 'else'
+mmix-pipe.w:6432: warning: suggest explicit braces to avoid ambiguous 'else'
+mmix-pipe.w:2119: warning: suggest explicit braces to avoid ambiguous 'else'
+mmix-arith.w:1399: warning: suggest explicit braces to avoid ambiguous 'else'
+
+
+7. Using unused parameter
+-------------------------
+mmix-sim.w:3049: warning: unused parameter 'n'
+adding 
+ if (n!=SIGINT) return;
+to the catchint function keeps the compiler from complaining.
+
+
+8. Mixing signed and unsigned quantities in comparison and assignment
+---------------------------------------------------------------------
+mmix-arith.w:304: warning: comparison between signed and unsigned
+< if (u[j+n]!=k) {
+---
+> if (u[j+n]!=(tetra)k) {
+
+u is an array of tetras, k is an int, the comparison should be based
+on the tetra data type.
+
+mmix-arith.w:1298: warning: comparison between signed and unsigned
+< else if (strlen(s)>=e) printf("%.*s.%s",e,s,s+e);
+---
+> else if ((int)strlen(s)>=e) printf("%.*s.%s",e,s,s+e);
+
+strlen returns size_t, which is unsigned in some implementations.
+e is an int. The string s is only a few characters long, so there
+is no danger in converting its length to an int before doing the
+comparison.
+
+mmix-config.w:752: warning: pointer targets in passing argument 1 of 
+                   'strlen' differ in signedness
+< for (j=div;j<=max_pipe_op;j++) int_stages[j]=strlen(pipe_seq[j]);
+---
+> for (j=div;j<=max_pipe_op;j++) int_stages[j]=(int)strlen((char*)pipe_seq[j]);
+
+strlen requires a char* argument and tests for not zero. So casting pipe_seq[j]
+is admissible.
+
+mmix-config.w:755: warning: pointer targets in passing argument 1 
+                   of 'strlen' differ in signedness
+mmix-config.w:755: warning: comparison between signed and unsigned
+mmix-config.w:755: warning: pointer targets in passing argument 1 
+                   of 'strlen' differ in signedness
+<   if (strlen(pipe_seq[j])>n) n=strlen(pipe_seq[j]);
+---
+>   if (strlen((char*)pipe_seq[j])>(unsigned int)n) 
+      n=(int)strlen((char*)pipe_seq[j]);
+
+n will be non negative so unsigned comparison is ok.
+
+mmixal.w:1354: warning: pointer targets in assignment differ in signedness
+<   register int j; register unsigned char *p;
+---
+>   register int j; register Char *p;
+
+The pointer p is used to traverse filename[cur_file].
+      for (j=0,p=filename[cur_file];*p;p++,j=(j+1)&3) {
+filename is declared as 
+      Char *filename[257];
+Therefore the pointer p should be of type Char* as well.
+
+mmixal.w:2218: warning: comparison between signed and unsigned
+<   for (j=1;j<4;j++) if (x<(1<<(8*j))) break;
+---
+>   for (j=1;j<4;j++) if (x<((unsigned int)1<<(8*j))) break;
+
+1 is an int and (1<<(8*j)) is also a signed quantity, whereas x is a tetra
+and so it's unsigned. Since (1<<(8*j)) is well within the range of an
+unsigned int and the comparison is intended to be unsigned using an 
+(unsigned int)1  is better.
+
+mmixal.w:3096: warning: comparison between signed and unsigned
+<  case LOCAL:@+if (val_stack[0].equiv.l>lreg) lreg=val_stack[0].equiv.l;
+---
+>  case LOCAL:@+if (val_stack[0].equiv.l>(unsigned int)lreg) 
+                  lreg=val_stack[0].equiv.l;
+
+lreg is an int. Its value is in the range 0 to 255. Here it is compared
+to a tetra equiv.l, which is unsigned; the unsigned comparison is
+correct here.
+
+mmix-io.w:199: warning: comparison between signed and unsigned
+mmix-io.w:256: warning: comparison between signed and unsigned
+mmix-io.w:288: warning: comparison between signed and unsigned
+mmix-io.w:309: warning: comparison between signed and unsigned
+mmix-io.w:333: warning: comparison between signed and unsigned
+<   register int n;
+---
+>   register unsigned int n;
+
+or
+
+<   register int n,s;
+---
+>   register tetra n, s;
+
+fread and fwrite return size_t, an unsigned quantity. As used here, the
+return values will not necessarily fit into a signed int. So, the
+variable n is changed to an unsigned int or a tetra. The same is true 
+for s (with code like "if (size.l<s && !size.h) s=size.l;").
+
+mmix-sim.w:3249: warning: comparison between signed and unsigned
+mmix-sim.w:3253: warning: comparison between signed and unsigned
+<     if (val.h!=0 || val.l>255 || val.l<L || val.l<32) break;
+---
+>     if (val.h!=0 || val.l>(unsigned int)255 || val.l<(unsigned int)L ||
+      val.l<32) break;
+
+<     if (val.h==0 && val.l<L) L=val.l;
+---
+>     if (val.h==0 && val.l<(unsigned int)L) L=val.l;
+
+mmix-sim.w:2211: warning: comparison between signed and unsigned
+<   if (z.l>L || z.h) z.h=0, z.l=L;
+---
+>   if (z.l>(unsigned int)L || z.h) z.h=0, z.l=L;
+
+mmix-sim.w:2217: warning: comparison between signed and unsigned
+<   if (z.h!=0 || z.l>255 || z.l<L || z.l<32) goto illegal_inst;
+---
+>   if (z.h!=0 || z.l>255 || z.l<(unsigned int)L || z.l<32) goto illegal_inst;
+
+L is a signed int. The comparisons should be executed with 
+unsigned values otherwise a negative value could sneak into L.
+
+mmix-pipe.w:2292: warning: comparison between signed and unsigned
+<   {@+register tetra x; register int new_L;
+---
+>   {@+register tetra x; register unsigned int new_L;
+
+Make new_L unsigned.
+
+mmix-sim.w:2026: warning: signed and unsigned type in conditional expression
+<  round_mode=(y.l? y.l: cur_round);@+goto store_fx;
+---
+>  round_mode=(y.l? (int)y.l: cur_round);@+goto store_fx;
+
+cur_round is signed. The rounding mode will fit in a signed int.
+
+mmix-pipe.w:5063: warning: comparison between signed and unsigned
+mmix-pipe.w:5067: warning: comparison between signed and unsigned
+< int page_n; /* the 10-bit |n| field of rV, times 8 */
+---
+> unsigned int page_n; /* the 10-bit |n| field of rV, times 8 */
+
+Made page_n an unsigned int.
+
+mmix-pipe.w:5004: warning: comparison between signed and unsigned
+<    ((data->y.o.l+(data->xx&(Dcache->bb-1))+1)^data->y.o.l)>=Dcache->bb)
+---
+>    ((data->y.o.l+(data->xx&(Dcache->bb-1))+1)^data->y.o.l)>=
+      (unsigned int)Dcache->bb)
+
+mmix-pipe.w:5079: warning: comparison between signed and unsigned
+<    if (Dcache && Dcache->bb<data->b.o.l) data->b.o.l=Dcache->bb;
+---
+>    if (Dcache && (unsigned int)Dcache->bb<data->b.o.l) 
+       data->b.o.l=Dcache->bb;
+
+mmix-pipe.w:4598: warning: comparison between signed and unsigned
+<     if (ticks.l-write_head->stamp<holding_time && !speed_lock)
+---
+>     if ((int)(ticks.l-write_head->stamp)<holding_time && !speed_lock)
+
+The difference between two unsigned int's is an unsigned int. In case
+ticks.l is less than write_head->stamp, its better to use a signed int.
+
+mmix-pipe.w:2118: warning: comparison between signed and unsigned
+< if (rename_regs<cool->ren_x+cool->ren_a) goto stall;
+---
+> if (rename_regs<(cool->ren_x?1:0)+(cool->ren_a?1:0)) goto stall;
+
+cool->ren_x+cool->ren_a replaced two times by 
+  (cool->ren_x?1:0)+(cool->ren_a?1:0)
+Adding booleans, where true just means "not zero", is not a good idea.
+
+
+mmix-sim.w: In function 'scan_option':
+mmix-sim.w:2937: warning: format '%d' expects type 'int *', 
+                 but argument 3 has type 'tetra *'
+<   else if (sscanf(arg+1,"%d",&trace_threshold)!=1) trace_threshold=0;
+---
+>   else if (sscanf(arg+1,"%d",(int *)&trace_threshold)!=1) trace_threshold=0;
+
+We assume that the interactively entered trace threshold fits in a signed int.
+
+mmix-sim.w:2940: warning: format '%x' expects type 'unsigned int *', 
+                 but argument 3 has type 'int *'
+< int tracing_exceptions; /* exception bits that cause tracing */
+---
+> unsigned int tracing_exceptions; /* exception bits that cause tracing */
+
+We change the variable tracing_exceptions to an unsigned int.
+
+9. Eliminating possible uninitialized variables
+-----------------------------------------------
+
+mmix-sim.w:998 
+< case lop_fixr: delta=yzbytes; goto fixr;
+< case lop_fixrx:j=yzbytes;@+if (j!=16 && j!=24) mmo_err;
+<  read_tet(); delta=tet;
+<  if (delta&0xfe000000) mmo_err;
+< fixr: tmp=incr(cur_loc,-(delta>=0x1000000? (delta&0xffffff)-(1<<j): delta)<<2);
+<  mmo_load(tmp,delta);
+<  continue;
+-------------
+> case lop_fixr: mmo_load(incr(cur_loc,-yzbytes<<2),yzbytes); continue;
+> case lop_fixrx:j=yzbytes;@+if (j!=16 && j!=24) mmo_err;
+>  read_tet();@+if (tet&0xfe000000) mmo_err;
+>  delta=(tet>=0x1000000? (tet&0xffffff)-(1<<j): tet);
+>  mmo_load(incr(cur_loc,-delta<<2),tet);
+>  continue;
+In case lop_fixr, the variable j is uninitializes 4 lines later.
+In this case delta will never be >= 0x1000000. So this is not a bug.
+
+mmix-sim.w:1053
+< G=zbyte;@+ L=0;
+---
+> G=zbyte;@+ L=0;@+ O=0;
+initializing O.

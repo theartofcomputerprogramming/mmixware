@@ -1,0 +1,222 @@
+SYNCD causes mmmix deadlock
+-------------------------------------------------------------------
+see http://mmix.cs.hm.edu/bugs/bug0.html
+
+I did an extensive study of the source code to see what
+locks coroutines do hold and do wait for. It is probably best
+to bring the locks/coroutines in an partial order so that
+a owning lock A, a coroutine is allowed to wait for
+lock B only if B comes later in the partial order.
+(coroutines are like locks because you can wait on coroutine->next)
+I established the following order: 
+(with Scache present)
+1. all coroutines for executing instructions
+2. write_from_wbuf
+3. wbuf_lock
+4. clean_lock
+5. clean_co
+6. I/Dcache reader
+7. I/Dcache lock
+8. I/Dcache flusher
+9. Scache lock
+10. I/Dcache filler
+11. Scache flusher
+12. mem_lock
+13. Scache filler
+
+Then all but one wait(1) respect this order: Dcache filler (fill_from_S)
+waits for Dcache lock holding the Scache lock in mmix-pipe.w line 4011
+
+  case 3: @<Copy data from |p| into |c->inbuf|@>;
+    data->state=4;@+wait(Scache->access_time);
+  case 4:@+ if (c->lock) wait(1);
+    set_lock(self,c->lock);
+    Scache->lock=NULL; /* we had been holding that lock */
+    load_cache(c,(cacheblock*)data->ptr_b);
+    data->state=5;@+ wait(c->copy_in_time);
+  case 5:@+if (cc) awaken(cc,1); /* second wakeup call */
+    goto terminate;
+
+It should release the Scache->lock before waiting, similar
+to the fill_from_mem routine. So the code should be:
+
+  case 3: @<Copy data from |p| into |c->inbuf|@>;
+    data->state=4;@+wait(Scache->access_time);
+  case 4:@+Scache->lock=NULL; /* we had been holding that lock */
+    data->state=5;
+  case 5:@+if (c->lock) wait(1);
+    set_lock(self,c->lock);
+    load_cache(c,(cacheblock*)data->ptr_b);
+    data->state=6;@+ wait(c->copy_in_time);
+  case 6:@+if (cc) awaken(cc,1); /* second wakeup call */
+    goto terminate;
+
+compare this to fill_from_mem:
+
+  case 1: release_lock(self,mem_lock);
+    data->state=2;
+  case 2:@+if (c!=Scache) {
+      if (c->lock) wait(1);
+      set_lock(self,c->lock);
+    }
+    if (cc) awaken(cc,c->copy_in_time); /* the second wakeup call */
+    load_cache(c,(cacheblock*)data->ptr_b);
+    data->state=3;@+ wait(c->copy_in_time);
+  case 3: goto terminate;
+
+To release the Dcache lock in clean while waiting
+for the Dcache flusher as proposed by Eiji Yoshiya 
+would eliminate the Dcache lock as a precondition
+to the Dcache flusher. 
+Even without actually taking that lock, for instance
+write_from_wbuf in lines 4660 to 4675 assumes,
+that there was a wait on the Dcache lock  in line 4601.
+So the lock should remain a precondition for the Dcache flusher.
+(@<Write the data into the D-cache...@>=
+actually could set this lock and release it immediately.
+So I assume the simulator is not "too lenient here".)
+
+SAVE in kernel mode causes stack alert
+---------------------------------------------------------------------
+see http://mmix.cs.hm.edu/bugs/bug1.html
+
+I propose a different bug fix than Eiji Yoshiya:
+in line 4855 of mmix-pipe
+replace
+
+  cool->interim=cool->stack_alert=true;
+
+by
+
+  cool->interim=true;
+  cool->stack_alert=!(cool->y.o.h&sign_bit);
+
+The semantics of stack_alert is given as 
+ bool stack_alert; /* is there potential for stack overflow? */
+So it should not be set. The extra code will effect
+only the incgamma instruction and not all load/stores
+from physical addresses (as the patch proposed by Eiji Yoshiya.
+
+IS gives wrong error message
+----------------------------------------------------------------------
+see  http://mmix.cs.hm.edu/bugs/bug_is.html
+
+in mmixal.w line change 2713-2714
+if (opcode==IS) { 
+  cur_loc=val_stack[0].equiv;
+to
+if (opcode==IS) { 
+  if (val_stack[0].status==undefined) err("the operand is undefined");
+  cur_loc=val_stack[0].equiv;
+
+Formatless use of Printf
+---------------------------------------------------------------------
+see http://mmix.cs.hm.edu/bugs/bug_printf.html
+
+in mmix-sim.w line 3099:
+mmix-sim.w: In function 'main':
+mmix-sim.w:3099: warning: format not a string literal and no format arguments
+<       if (command_buf[0]==' ') printf(command_buf);
+---
+>       if (command_buf[0]==' ') printf("%s",command_buf);
+A command file containing a substring like "%s" can crash mmix.
+
+Typos
+---------------------------------------------------------------------
+in mmix-pipe line 3933
+"and |data->ptr_a| specifies either |Icache| or |Dcache|." should be 
+"and |data->ptr_a| specifies either |Scache|, |Icache|, or |Dcache|."
+
+in mmix-pipe line 3941
+"Let |c=data->ptr_b|." should be "Let |c=data->ptr_a|."
+
+in mmixal.w line 841, 842
+"will either 0 or~1." should be "will either be 0 or~1."
+
+rI and rU
+---------
+see http://mmix.cs.hm.edu/bugs/bug_ri.html
+rI, as specified in mmix-pipe and mmix-doc, 
+should reflect cycles not instructions;
+rU is specified there with usage mask, usage pattern,
+and usage count. mmix-sim implements "simplified" versions of this.
+It is relatively easy to change this:
+
+change lines 52 to 54 
+< $2^{32}$ for each~$\mu$ and 1~for each~$\upsilon$. But the interval
+< counter~rI decreases by~1 for each instruction, and the usage
+< counter~rU increases by~1 for each instruction.
+---
+> $2^{32}$ for each~$\mu$ and 1~for each~$\upsilon$. The interval
+> counter~rI decreases by~1 for each~$\upsilon$, and the usage
+> count field of~rU may increase by~1~(mod~$2^{48}$) for each instruction.
+
+change line 189 
+< cause a break in simulation after 250 instructions have been executed.
+---
+> cause a break in simulation after $250\upsilon$ have elapsed.
+
+change lines 2114ff
+<  else bad_guesses++, sclock.l+=2; /* penalty is $2\upsilon$ for bad guess */
+---
+>  else {
+>    bad_guesses++, sclock.l+=2; /* penalty is $2\upsilon$ for bad guess */
+>    if (g[rI].h==0 && g[rI].l<=2) tracing=breakpoint=true;
+>    g[rI]=incr(g[rI],-2); 
+>  }
+
+change lines 2649ff
+< if (g[rU].l || g[rU].h || !resuming) {
+<   sclock.h+=info[op].mems; /* clock goes up by $2^{32}$ for each $\mu$ */
+<   sclock=incr(sclock,info[op].oops); /* clock goes up by 1 for each $\upsilon$ */
+<   g[rU]=incr(g[rU],1); /* usage counter counts total instructions simulated */
+<   g[rI]=incr(g[rI],-1); /* interval timer counts down by 1 only */
+<   if (g[rI].l==0 && g[rI].h==0) tracing=breakpoint=true;
+---
+> if (sclock.l || sclock.h || !resuming) {
+>   sclock.h+=info[op].mems; /* clock goes up by $2^{32}$ for each $\mu$ */
+>   sclock.l+=info[op].oops; /* clock goes up by 1 for each $\upsilon$ */
+>   if ((!(loc.h&sign_bit) || (g[rU].h&0x8000)) &&
+>       (op&(g[rU].h>>16))==g[rU].h>>24) {
+>       g[rU].l++;@+ if (g[rU].l==0) {
+>         g[rU].h++;@+ if ((g[rU].h&0x7fff)==0) g[rU].h-=0x8000;@+
+>       }
+>     } /* usage counter counts total instructions simulated */
+>   g[rI]=incr(g[rI],-1); /* interval timer goes down by 1 only */
+>   if (g[rI].l==0 && g[rI].h==0) tracing=breakpoint=true;
+>   g[rI]=incr(g[rI],-(info[op].oops-1)); /* interval timer goes down by 1 for each $\upsilon$ */
+
+
+Characters with codes > 0x7f in symbols.
+---------------------------------------------------------------------
+The following code:
+
+pâté 	IS 	$0
+Main	SET	pâté,0
+
+can result in this message:
+
+"tests/umlaut.mms", line 2: X field is undefined!
+(One error was found.)
+
+The problem is in the function trie_search,
+where tt->ch an unsigned short is compared to *p a char
+like this
+      while (*p!=tt->ch) {
+and set like this
+ tt->ch=*p++;
+
+which might (depending on the compiler) be a signed or an unsigned quantity.
+In the first case 'â' <0 in the later 'â' > 0x7F.
+In the first case *p will not compare correctly to tt->ch.
+
+in mmixal.w,
+change line 1479 
+<   register Char *p=s;
+---
+>   register unsigned char *p=(unsigned char *)s;
+
+change line 1482
+<       terminator=p;@+return tt;
+---
+>       terminator=(Char*)p;@+return tt;
