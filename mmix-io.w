@@ -175,7 +175,7 @@ octa mmix_fgets(handle,buffer,size)
   octa buffer,size;
 {
   char buf[256];
-  register int n, s;
+  register int n,s;
   register char *p;
   octa o;
   int eof=0;
