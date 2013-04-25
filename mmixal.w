@@ -2405,12 +2405,12 @@ for (j=0;j<10;j++) {
 @ We have already checked to make sure that the character constant is legal.
 
 @<Scan a character constant@>=
-acc.h=0, acc.l=*p;
+acc.h=0, acc.l=(unsigned char)*p;
 p+=2;
 goto constant_found;
 
 @ @<Scan a string constant@>=
-acc.h=0, acc.l=*p;
+acc.h=0, acc.l=(unsigned char)*p;
 if (*p=='\"') {
   p++; acc.l=0; err("*null string is treated as zero");
 @.null string...@>
