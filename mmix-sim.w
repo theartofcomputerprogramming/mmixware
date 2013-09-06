@@ -2328,7 +2328,10 @@ case UNSAVE:@+if (xx!=0 || yy!=0) goto illegal_inst;
 g[rS]=incr(g[rS],-8);
 ll=mem_find(g[rS]);
 test_load_bkpt(ll);@+test_load_bkpt(ll+1);
-if (k==rZ+1) x.l=G=g[rG].l=ll->tet>>24, a.l=g[rA].l=(ll+1)->tet&0x3ffff;
+if (k==rZ+1) {
+  x.l=G=g[rG].l=ll->tet>>24, a.l=g[rA].l=(ll+1)->tet&0x3ffff;
+  if (G<32)  x.l=G=g[rG].l=32;
+}
 else g[k].h=ll->tet, g[k].l=(ll+1)->tet;
 if (stack_tracing) {
   tracing=true;
