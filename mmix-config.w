@@ -733,7 +733,7 @@ absorbed all the data of the configuration file. We still must check for
 interactions between different quantities, and we must allocate
 space for cache blocks, coroutines, etc.
 
-One of the most difficult tasks facing us to determine the maximum number
+One of the most difficult tasks facing us is to determine the maximum number
 of pipeline stages needed by each functional unit. Let's tackle that first.
 
 @<Allocate coroutines in each functional unit@>=
@@ -758,7 +758,7 @@ int_stages[ld]=int_stages[st]=int_stages[frem]=2;
 for (j=0;j<256;j++) stages[j]=int_stages[int_op[j]];
 
 @ The |int_op| conversion table is similar to the |internal_op| array of
-the \\{MMIX\_pipe} routine, but it replaces |divu| by |div|,
+the \\{MMIX\_run} routine, but it replaces |divu| by |div|,
 |fsub| by |fadd|, etc.
 
 @<Glob...@>=
@@ -994,8 +994,8 @@ if (!wbuf_bot) panic(errprint0("Can't allocate the write buffer"));
 wbuf_top=wbuf_bot+write_buf_size;
 if (bp_n==0) bp_table=NULL;
 else { /* a branch prediction table is desired */
-  if (bp_a+bp_b+bp_c>=32) panic(errprint0(
-     "Configuration error: Branch table has >= 4 gigabytes of data"));
+  if (bp_a+bp_b+bp_c>=31) panic(errprint0(
+     "Configuration error: Branch table has >= 2 gigabytes of data"));
   bp_table=(char*)calloc(1<<(bp_a+bp_b+bp_c),sizeof(char));
   if (!bp_table) panic(errprint0("Can't allocate the branch table"));
 }

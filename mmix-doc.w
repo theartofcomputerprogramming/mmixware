@@ -89,10 +89,10 @@ have made significant contributions.
 @^Hennessy, John LeRoy@>
 @^Sites, Richard Lee@>
 
-@ A programmer's introduction to \MMIX\ appears in ``Fascicle~1,'' a booklet
+@ A programmer's introduction to \MMIX\ appears in ``Volume~1, Fascicle~1,''
 @^Fascicle 1@>
-containing tutorial material that will ultimately appear in the fourth edition
-of {\sl The Art of Computer Programming}.
+a booklet containing tutorial material that will ultimately appear in the
+fourth edition of {\sl The Art of Computer Programming}.
 The description in the following sections is rather different, because
 we are concerned about a complete implementation, including all of the
 features used by the operating system and invisible to normal programs.
@@ -213,6 +213,7 @@ We use the notation $\mm_{2^t}[k]$ to stand for a number consisting of
 $2^t$~consecutive bytes starting at location~$k\land\nobreak(2^{64}-2^t)$.
 (The notation $k\land(2^{64}-2^t)$ means that the least
 significant $t$ bits of~$k$ are set to~0, and only the least 64~bits
+@^bit stuffing@>
 of the resulting address are retained. Similarly, the notation
 $k\lor(2^t-1)$ means that the least significant $t$ bits of~$k$ are set to~1.)
 All accesses to $2^t$-byte quantities by \MMIX\ are {\it aligned}, in the sense
@@ -271,6 +272,7 @@ are loaded into register~X as a signed number between $-32768$ and $+32767$,
 inclusive. As mentioned above, our notation $\mm_2[k]$ implies that
 the least significant bit of the address $\rY+\rZ$ or $\rY+\zz$ is
 ignored and assumed to be~0.
+@^bit stuffing@>
 
 \bull\<LDWU \$X,\$Y,\0 `load wyde unsigned'.@>
 @.LDWU@>
@@ -285,6 +287,7 @@ $+2{,}147{,}483{,}647$, inclusive.
 As mentioned above, our notation $\mm_4[k]$ implies that
 the two least significant bits of the address $\rY+\rZ$ or $\rY+\zz$ are
 ignored and assumed to be~0.
+@^bit stuffing@>
 
 \bull\<LDTU \$X,\$Y,\0 `load tetra unsigned'.\>
 @.LDTU@>
@@ -299,6 +302,7 @@ register~X\null.
 As mentioned above, our notation $\mm_8[k]$ implies that
 the three least significant bits of the address $\rY+\rZ$ or $\rY+\zz$ are
 ignored and assumed to be~0.
+@^bit stuffing@>
 
 \bull\<LDOU \$X,\$Y,\0 `load octa unsigned'.\>
 @.LDOU@>
@@ -340,7 +344,7 @@ into $\mm_8[\$2+17]$.
 @.STB@>
 The least significant byte of register~X is stored into
 byte $\mm[\rY+\rZ]$ or $\mm[\rY+\zz]$. An integer overflow exception occurs if
-@.overflow@>
+@^overflow@>
 \$X is not between $-128$ and $+127$. (We will discuss overflow and other
 kinds of exceptions later.)
 
@@ -407,7 +411,7 @@ The sum $\rY+\rZ$ or $\rY+\zz$ is placed into register~X using signed,
 two's complement arithmetic.
 An integer overflow exception occurs if the sum is $\ge2^{63}$ or $<-2^{63}$.
 (We will discuss overflow and other kinds of exceptions later.)
-@.overflow@>
+@^overflow@>
 
 \bull\<ADDU \$X,\$Y,\0 `add unsigned'.\>
 @.ADDU@>
@@ -701,7 +705,7 @@ exclusive-or is used to combine the bits. Thus we obtain a matrix
 product over the field of two elements instead of a Boolean matrix product.
 This operation can be used to construct hash functions, among many other things.
 (The hash functions aren't bad, but they are not ``universal'' in the
-sense of exercise 6.4--72.)
+sense of {\sl Sorting and Searching}, exercise 6.4--72.)
 @^matrices of bits@>
 @^Boolean multiplication@>
 
@@ -1036,6 +1040,7 @@ But subroutines are normally entered with the instructions
 The two least significant bits of the address
 in a \.{GO} command are essentially ignored. They will, however, appear in
 the value of~$\lambda$ returned by \.{GETA} instructions, and in the
+@^bit stuffing@>
 return-jump register~rJ after \.{PUSHJ} or \.{PUSHGO} instructions are
 performed, and in
 @^rJ@>
@@ -1321,6 +1326,9 @@ or subnormal); in that case the result is $-\NaN(1/2)$. No exception occurs
 when taking the square root of $-0.0$ or $+\infty$. In all cases the sign of
 the result is the sign of~\$Z\null.
 
+The Y field of \.{FSQRT} can be used to specify a
+special rounding mode, as explained below.
+             
 \bull\<FINT \$X,\$Z `floating integer'.\>
 @.FINT@>
 The floating point number in register~Z is rounded (if
@@ -1329,7 +1337,7 @@ rounding mode, and placed in register~X\null. Infinite values and quiet NaNs
 are not changed; signaling NaNs are treated as in the standard conventions.
 Floating point overflow and underflow exceptions cannot occur. 
 
-The Y field of \.{FSQRT} and \.{FINT} can be used to specify a
+The Y field of \.{FINT} can be used to specify a
 special rounding mode, as explained below.
              
 @ Besides doing arithmetic, we need to compare floating point numbers
@@ -1485,7 +1493,7 @@ $\epsilon=1/2$, when no exceptions arise? \ Answer: Zero, subnormal
 numbers, and normal numbers with $f=0$.
 (The numbers similar to zero with respect to~$\epsilon$ are zero,
 subnormal numbers with $f\le2\epsilon$, normal numbers with $f\le2\epsilon-1$,
-and $\pm\infty$ if $\epsilon>=1$.)
+and $\pm\infty$ if $\epsilon>=1$.)\looseness=-1
 
 @ The IEEE standard also defines 32-bit floating point quantities, which
 it calls ``single format'' numbers. \MMIX\ calls them {\it short floats},
@@ -1575,11 +1583,11 @@ needs them only when emulating a 32-bit machine.
 @ Since the variants of \.{FIX} and \.{FLOT} involve only one input operand (\$Z
 or~Z), their Y~field is normally zero. A programmer can, however, force the
 mode of rounding used with these commands by setting
-$$\vbox{\halign{$\yy=#$,\quad &\.{ROUND\_#};\hfil\cr
-1&OFF\cr
-2&UP\cr
-3&DOWN\cr
-4&NEAR\cr}}$$
+$$\vbox{\halign{$\yy=#$,\quad &\.{ROUND\_#}\hfil&\quad(#);\hfil\cr
+1&OFF&none\cr
+2&UP&away from zero\cr
+3&DOWN&toward zero\cr
+4&NEAR&to closest\cr}}$$
 for example, the instruction \<FLOTU \$X,ROUND\_OFF,\$Z will set the
 exponent~$e$ of register~X to $1086-l$ if \$Z is a nonzero quantity with
 $l$~leading zero bits. Thus we can count leading zeros by continuing
@@ -2167,6 +2175,7 @@ Y and Z fields of the \.{TRIP} command, namely \$Y and~\$Z.
 Then \$255 is placed into the special {\it bootstrap
 register\/}~rB, and \$255 is set to~rJ. \MMIX\ now takes its next instruction
 @^rB@>
+@^rJ@>
 from virtual memory address~0.
 
 Arithmetic exceptions interrupt the computation in essentially the
@@ -2230,7 +2239,7 @@ and place the result in~rZZ\null. A~subsequent
 
 When a forced trap occurs on a store instruction because of memory protection
 failure, the settings of rYY and rZZ are undefined. They do not necessarily
-correspond to the virtual address rY and octabyte to be stored rZ
+correspond to the virtual address rY and the octabyte to be stored rZ
 that are supplied to a trip handler after a tripped store instruction,
 because a forced trap aborts its instruction as soon as possible.
 
@@ -2513,7 +2522,7 @@ and the usage count~$u_c$. The most significant byte of~rU is the usage
 pattern; the next most significant byte is the usage mask; and
 the remaining 48 bits are the usage count. Whenever an instruction whose
 ${\rm OP}\land u_m=u_p$ has been executed, the value of $u_c$ increases by~1
-(mod~$2^{48}$).
+(modulo~$2^{47}$).
 Thus, for example, the OP-code chart below implies that
 all instructions are counted if $u_p=u_m=0$;
 all loads and stores are counted together with \.{GO} and \.{PUSHGO}
@@ -2652,7 +2661,7 @@ by Advanced Micro Devices, in the processors of their Am29000 series---a
 family of computers whose instructions have essentially the
 format `OP~X~Y~Z' used by~\MMIX.]
 @^Ditzel, David Roger@>
-@^McClellan, Hubert Rae, Jr.@>
+@^McLellan, Hubert Rae, Jr.@>
 
 Limited versions of\/ \MMIX, having fewer registers, can also be envisioned. For
 example, we might have only 32 local registers $\l[0]$, $\l[1]$,
@@ -2701,7 +2710,7 @@ of the current value and the new value. (A~program should say
 \<SETL \$99,0 instead of \<PUT rL,100 when rL is known to be less than~100.)
 
 Impermissible \.{PUT} commands cause an illegal instruction interrupt,
-or (in the case of rI, rK, rQ, rT, rU, rV, and~rTT) a privileged
+or (in the case of rC, rI, rK, rQ, rT, rU, rV, and~rTT) a privileged
 operation interrupt.
 @^illegal instructions@>
 @^privileged operations@>
