@@ -4121,7 +4121,7 @@ case 10: goto terminate;
 }
 
 @ @<Cases 0 through 4, for the D-cache@>=
-case 0:@+ if (Dcache->lock || (j=get_reader(Dcache)<0)) wait(1);
+case 0:@+ if (Dcache->lock || (j=get_reader(Dcache))<0) wait(1);
   startup(&Dcache->reader[j],Dcache->access_time);
   set_lock(self,Dcache->lock);
   i=j=0;
@@ -4144,7 +4144,7 @@ case 2:@+ if (!clean_lock) goto done; /* premature termination */
   if (Dcache->flusher.next) wait(1);
   if (data->i!=sync) goto Sprep;
   data->state=3;
-case 3:@+ if (Dcache->lock || (j=get_reader(Dcache)<0)) wait(1);
+case 3:@+ if (Dcache->lock || (j=get_reader(Dcache))<0) wait(1);
   startup(&Dcache->reader[j],Dcache->access_time);
   set_lock(self,Dcache->lock);
   i=data->y.o.h, j=data->y.o.l;
@@ -4155,7 +4155,7 @@ Dclean_inc: j++;
     wait(Dcache->access_time);
   }
   goto Dclean_loop;
-case 4:@+ if (Dcache->lock || (j=get_reader(Dcache)<0)) wait(1);
+case 4:@+ if (Dcache->lock || (j=get_reader(Dcache))<0) wait(1);
   startup(&Dcache->reader[j],Dcache->access_time);
   set_lock(self,Dcache->lock);
   p=cache_search(Dcache,data->z.o);
@@ -4602,7 +4602,7 @@ case write_from_wbuf:
     if ((int)(ticks.l-write_head->stamp)<holding_time && !speed_lock)
       wait(1); /* data too raw */
     if (!Dcache) goto mem_direct; /* not cached */
-    if (Dcache->lock || (j=get_reader(Dcache)<0)) wait(1); /* D-cache busy */
+    if (Dcache->lock || (j=get_reader(Dcache))<0) wait(1); /* D-cache busy */
     startup(&Dcache->reader[j],Dcache->access_time);
     @<Write the data into the D-cache and set |state=4|,
                 if there's a cache hit@>;
