@@ -3610,7 +3610,7 @@ static void flush_cache(c,p,keep)
     else d=c->outbuf.data, c->outbuf.data=p->data, p->data=d;
     dd=c->outbuf.dirty, c->outbuf.dirty=p->dirty, p->dirty=dd;
     for (j=0;j<c->bb>>c->g;j++) p->dirty[j]=false;
-    p->rank=c->bb; /* this many valid bytes */
+    c->outbuf.rank=c->bb; /* this many valid bytes */
     startup(&c->flusher,c->copy_out_time); /* will not be aborted */
 }
 
