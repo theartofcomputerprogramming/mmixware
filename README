@@ -68,8 +68,8 @@ HOW TO GET STARTED
 
 First try "make doc"; this, at least on UNIX-like systems equipped with dvips,
 should create three PostScript documents called mmix-doc.ps, mmixal-intro.ps,
-and mmix-sim-intro.ps. Print these files, and move their tables-of-contents
-pages to the front (those pages appear at the end). 
+and mmix-sim-intro.ps. Print these files, and move the table-of-contents
+page to the front (those pages appear at the end). 
 Read those documents, and please report any errors you find to ruckert@cs.hm.edu
 (or knuth-bug@cs.stanford.edu). 
 If your system is unable to create those documents for some reason, go to
