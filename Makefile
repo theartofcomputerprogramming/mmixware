@@ -71,7 +71,7 @@ doc:    mmix-doc.ps mmixal.dvi mmix-sim.dvi
 all:    mmixal mmix mmotype mmmix
 
 clean:
-	rm -f *~ *.o *.c *.h *.tex *.log *.dvi *.toc *.idx *.scn *.ps core
+	rm -f *~ *.o *.c *.h *.tex *.log *.dvi *.toc *.idx *.scn *.ps *.pdf core
 
 mmix-pipe.o: mmix-pipe.c abstime
 	./abstime > abstime.h
