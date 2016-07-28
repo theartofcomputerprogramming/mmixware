@@ -3651,7 +3651,7 @@ static cacheblock* alloc_slot(c,alf)
   register cacheblock *p,*q;
   if (cache_search(c,alf)) return NULL;
   if (c->flusher.next && c->outbuf.tag.h==alf.h &&
-        !((c->outbuf.tag.l^alf.l)&c->tagmask)) return NULL;
+        !((c->outbuf.tag.l^alf.l)&-c->bb)) return NULL;
   s=cache_addr(c,alf); /* the set corresponding to |alf| */
   if (c->victim) p=choose_victim(c->victim,c->vv,c->vrepl);
   else p=choose_victim(s,c->aa,c->repl);
