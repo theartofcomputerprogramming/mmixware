@@ -68,11 +68,12 @@ HOW TO GET STARTED
 
 First try "make doc"; this, at least on UNIX-like systems equipped with dvips,
 should create three PostScript documents called mmix-doc.ps, mmixal-intro.ps,
-and mmix-sim-intro.ps. Print these files, and move the table-of-contents
-page to the front (those pages appear at the end). 
-Read those documents, and please report any errors you find to ruckert@cs.hm.edu. 
+and mmix-sim-intro.ps. Print these files, and move each table-of-contents
+page to the front (those pages appear at the end). Read those documents,
+and please report any errors you find to ruckert@cs.hm.edu.
 If your system is unable to create those documents for some reason, go to
-   http://mmix.cs.hm.edu/doc for pdf files or to
+   http://mmix.cs.hm.edu/doc 
+for pdf files, or to
    http://www-cs-faculty.stanford.edu/~knuth/mmix-news.html
 and download the compressed PostScript files from there.
 Say "make clean" when you've got hardcopy.
