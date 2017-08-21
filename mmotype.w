@@ -340,7 +340,9 @@ if (z>0) {
   j=z;
   read_tet();
   if (listing)
-    printf("File was created %s",asctime(localtime((time_t*)&tet)));
+  { time_t t = tet;
+    printf("File was created %s",asctime(localtime(&t)));
+  }
   for (j--;j>0;j--) {
     read_tet();
     if (listing) printf("Preamble data %08x\n",tet);
