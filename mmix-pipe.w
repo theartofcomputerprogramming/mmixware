@@ -1125,7 +1125,7 @@ special registers 0--7 are unencumbered, 9--11 can't be \.{PUT} by anybody,
 8 and 12--18 can't be \.{PUT} by the user. Pipeline delays might occur
 when \.{GET} is applied to special registers 21--31 or when
 \.{PUT} is applied to special registers 8 or 15--20. The \.{SAVE} and
-\.{UNSAVE} commands store and restore special registers 0--6 and 23--27.
+\.{UNSAVE} commands store and restore special registers 0--6 and 23--27 followed by 19 and 21.
 
 @<Header def...@>=
 #define rA 21 /* arithmetic status register */

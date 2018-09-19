@@ -169,7 +169,7 @@ value, perhaps in another format; for example, the command `\.{l10\#}'
 will show local register 10 in hexadecimal notation, then the command
 `\.!' will show it in decimal and `\..' will show it as a floating point
 number. If \.{<t>} is empty, the previous type will be repeated;
-the default type is decimal. Register \.{rA} is equivalent to \.{g22},
+the default type is decimal. Register \.{rA} is equivalent to \.{g21},
 according to the numbering used in \.{GET} and \.{PUT} commands.
 
 The `\.{<t>}' in any of these commands can also have the form
@@ -1738,13 +1738,13 @@ op_info info[256]={
 if (resuming && rop!=RESUME_AGAIN)
   @<Install special operands when resuming an interrupted operation@>@;
 else {
-  if (f&0x10) @<Set |b| from register X@>;
+  if (f&X_is_source_bit) @<Set |b| from register X@>;
   if (info[op].third_operand) @<Set |b| from special register@>;
-  if (f&0x1) z.l=zz;
-  else if (f&0x2) @<Set |z| from register Z@>@;
+  if (f&Z_is_immed_bit) z.l=zz;
+  else if (f&Z_is_source_bit) @<Set |z| from register Z@>@;
   else if ((op&0xf0)==SETH) @<Set |z| as an immediate wyde@>;
-  if (f&0x4) y.l=yy;
-  else if (f&0x8) @<Set |y| from register Y@>;
+  if (f&Y_is_immed_bit) y.l=yy;
+  else if (f&Y_is_source_bit) @<Set |y| from register Y@>;
 }
 
 @ There are 256 global registers, |g[0]| through |g[255]|; the
