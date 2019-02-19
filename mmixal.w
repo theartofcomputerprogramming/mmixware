@@ -1111,6 +1111,7 @@ as a comment by the assembler.
           panic("Capacity exceeded: More than 256 file names");
         filename_count++;
       }
+      else free(filename[filename_count]); 
       cur_file=k;
       line_no=j-1;
     }
