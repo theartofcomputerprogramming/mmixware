@@ -4841,7 +4841,7 @@ experience a spurious miss.
 }
 
 @ The protection bits $p_rp_wp_x$ in a translation cache are shifted
-four positions right from the interrupt codes |PR_BIT|, |PW_BIT|, |PX_BIT|.
+five positions right from the interrupt codes |PR_BIT|, |PW_BIT|, |PX_BIT|.
 If the data is protected, we abort the load/store operation immediately;
 this protects the privacy of other users.
 
