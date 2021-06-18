@@ -5697,7 +5697,7 @@ if (hot->interrupt&H_BIT) { /* trip */
   if (hot->interrupt&F_BIT) { /* forced */
     if (hot->i!=trap) j=RESUME_TRANS; /* emulate page translation */
     else if (hot->op==TRAP) j=0x80; /* |TRAP| */
-    else if (flags[internal_op[hot->op]]&X_is_dest_bit)
+    else if (flags[hot->op]&X_is_dest_bit)
       j=RESUME_SET; /* emulation */
     else j=0x80; /* emulation when r[X] is not a destination */
   }@+else { /* dynamic */
