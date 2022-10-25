@@ -62,6 +62,7 @@ extern octa ominus @,@,@[ARGS((octa,octa))@];
 extern octa incr @,@,@[ARGS((octa,int))@];
 extern octa zero_octa; /* |zero_octa.h=zero_octa.l=0| */
 extern octa neg_one; /* |neg_one.h=neg_one.l=-1| */
+extern octa mmix_fclose @,@,@[ARGS((unsigned char))@];
 
 @ Each possible handle has a file pointer and a current mode.
 
@@ -96,15 +97,13 @@ octa mmix_fopen(handle,name,mode)
   octa name,mode;
 {
   char name_buf[FILENAME_MAX];
-  if (mode.h || mode.l>4) goto failure;
-  if (mmgetchars(name_buf,FILENAME_MAX,name,0)==FILENAME_MAX) goto failure;
-  if (sfile[handle].mode!=0 && handle>2) fclose(sfile[handle].fp);
+  if (mode.h || mode.l>4) return neg_one;
+  if (mmgetchars(name_buf,FILENAME_MAX,name,0)==FILENAME_MAX) return neg_one;
+  mmix_fclose(handle);
   sfile[handle].fp=fopen(name_buf,mode_string[mode.l]);
-  if (!sfile[handle].fp) goto failure;
+  if (!sfile[handle].fp) return neg_one;
   sfile[handle].mode=mode_code[mode.l];
   return zero_octa; /* success */
- failure: sfile[handle].mode=0;
-  return neg_one; /* failure */
 }
 
 @ @<Glob...@>=
@@ -123,13 +122,16 @@ void mmix_fake_stdin(f)
 }
 
 @ @<Sub...@>=
-octa mmix_fclose @,@,@[ARGS((unsigned int))@];@+@t}\6{@>
+octa mmix_fclose @,@,@[ARGS((unsigned char))@];@+@t}\6{@>
 octa mmix_fclose(handle)
-  unsigned int handle;
+  unsigned char handle;
 {
   if (sfile[handle].mode==0) return neg_one;
-  if (handle>2 && fclose(sfile[handle].fp)!=0) return neg_one;
   sfile[handle].mode=0;
+  if (((handle==0 && sfile[handle].fp!=stdin) ||
+      (handle==1 && sfile[handle].fp!=stdout) ||
+      (handle==2 && sfile[handle].fp!=stderr) ||
+      handle>2) && fclose(sfile[handle].fp)!=0) return neg_one;
   return zero_octa; /* success */
 }
 

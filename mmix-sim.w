@@ -440,8 +440,8 @@ initially set to the number of {\it command line arguments\/}; and
 @^command line arguments@>
 local register~\$1 points to the first such argument, which
 is always a pointer to the program name. Each command line argument is a
-pointer to a string; the last such pointer is M$_8[\$0\ll3+\$1]$, and
-M$_8[\$0\ll3+\$1+8]$ is zero. (Register~\$1 will point to an octabyte in
+pointer to a string; the last such pointer is M$_8[\$0\ll3+\$1-8]$, and
+M$_8[\$0\ll3+\$1]$ is zero. (Register~\$1 will point to an octabyte in
 \.{Pool\_Segment}, and the command line strings will be in that segment
 too.) Location M[\.{Pool\_Segment}] will be the address of the first
 unused octabyte of the pool segment.

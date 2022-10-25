@@ -530,6 +530,8 @@ octa fpack(f,e,s,r)
 int exceptions; /* bits possibly destined for rA */
 
 @ Everything falls together so nicely here, it's almost too good to be true!
+The conditional expression in the case for |ROUND_NEAR|
+rounds towards an even number in case of a tie.
 
 @<Round and return the result@>=
 if (o.l&3) exceptions |= X_BIT;

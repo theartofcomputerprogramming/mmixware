@@ -454,8 +454,8 @@ read_tet();
 if (buf[0]!=mm || buf[1]!=lop_end)
   fprintf(stderr,"The symbol table isn't followed by lop_end!\n");
 @.The symbol table isn't...@>
-else if (count!=stab_start+yz+1)
-  fprintf(stderr,"YZ field at lop_end should have been %d!\n",count-yz-1);
+else if (count-stab_start-1!=yz)
+  fprintf(stderr,"YZ field at lop_end should have been %d!\n",count-stab_start-1);
 @:YZ field at lop_end...}\.{YZ field at lop\_end...@>
 else {
   if (verbose) printf("Symbol table ends at tetra %d.\n",count);
