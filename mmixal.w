@@ -1414,11 +1414,11 @@ void assemble(k,dat,x_bits)
     hold_buf[jj]=(dat>>(8*(k-1-j)))&0xff;
     held_bits|=1<<jj;
     listing_bits|=1<<jj;
-  }
-  listing_bits|=x_bits;
-  if (((l+k)&3)==0) {
-    if (listing_file) listing_clear();
-    mmo_clear();
+    listing_bits|=x_bits;
+    if (((l+j+1)&3)==0) {
+      if (listing_file) listing_clear();
+      mmo_clear();
+    }
   }
   if (spec_mode) spec_mode_loc+=k; else cur_loc=incr(cur_loc,k);
 }
