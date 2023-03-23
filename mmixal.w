@@ -3122,7 +3122,7 @@ switch(opcode) {
    mmo_loc();@+mmo_sync();
    mmo_lopp(lop_spec,val_stack[0].equiv.l);
    spec_mode=true;@+spec_mode_loc=0;@+ goto bypass;
- case ESPEC: spec_mode=false;@+goto bypass;
+ case ESPEC: spec_mode=false;@+if (held_bits) mmo_clear();@+goto bypass;
 }
 
 @ @<Glob...@>=

@@ -220,3 +220,47 @@ change line 1482
 <       terminator=p;@+return tt;
 ---
 >       terminator=(Char*)p;@+return tt;
+
+Data between BSPEC and ESPEC will not be written to the output file
+---------------------------------------------------------------------
+
+The bug is in the mmixal function assemble(k,dat,x_bits)
+where we have (shortened):
+<pre>
+  if (spec_mode) l=spec_mode_loc;
+  . . .
+  for (j=0;j&lt;k;j++) {
+    jj=(l+j)&3;
+    hold_buf[jj]=(dat&gt;&gt;(8*(k-1-j)))&0xff;
+    held_bits|=1&lt;&lt;jj;
+    . . .
+  }
+  . . .
+  if (((l+k)&3)==0) {
+    . . .
+    mmo_clear();
+  }
+  if (spec_mode) spec_mode_loc+=k;
+</pre>
+
+Calling assemble with k=1 and then with k=4 will never call mmo_clear()
+and nothing will be written to the output file. mmo_clear will only be 
+called if (once in a while) the total sum over all k is 0 mod 4.
+I propose to integrating the test into the for-loop as follows:
+
+<pre>
+  if (spec_mode) l=spec_mode_loc;
+  . . .
+  for (j=0;j&lt;k;j++) {
+    jj=(l+j)&3;
+    hold_buf[jj]=(dat&gt;&gt;(8*(k-1-j)))&0xff;
+    held_bits|=1&lt;&lt;jj;
+    . . .
+    . . .
+    if (((l+j+1)&3)==0) {
+      . . .
+      mmo_clear();
+    }
+  }
+  if (spec_mode) spec_mode_loc+=k; 
+</pre>
