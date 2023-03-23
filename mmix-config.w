@@ -999,6 +999,7 @@ else { /* a branch prediction table is desired */
   if (!bp_table) panic(errprint0("Can't allocate the branch table"));
 }
 l=(specnode*)calloc(lring_size,sizeof(specnode));
+@:l}{\|l (ring of local registers)@>
 if (!l) panic(errprint0("Can't allocate local registers"));
 j=bus_words;
 if (Icache && (Icache->bb>>3)>j) j=Icache->bb>>3;

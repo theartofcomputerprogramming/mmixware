@@ -282,6 +282,7 @@ inst_ptr.o=mem_read(incr(cur_loc,-8*14)); /* \.{Main} */
 inst_ptr.p=NULL;
 cur_loc.h=0x60000000;
 g[255].o=incr(cur_loc,-8); /* place to \.{UNSAVE} */
+@:g}{\|g (global registers)@>
 cur_dat.l=0xf0;
 if (mem_read(cur_dat).h) inst_ptr.o=cur_dat; /* start at |0xf0| if nonzero */
 head->inst=(UNSAVE<<24)+255, tail--; /* prefetch a fabricated command */
@@ -422,6 +423,7 @@ case 'k': inst_ptr.o.h^=0x80000000; /* shortcut to kernel mode */
   if (!ticks.l && head) head->loc.h^=0x80000000; /* fix the \.{UNSAVE} loc */
 new_inst_ptr:@+if (inst_ptr.o.h&0x80000000)
     g[rK].o.h&=-2; /* disable interrupts on |P_BIT| */
+@:g}{\|g (global registers)@>
   inst_ptr.p=NULL;@+continue;
 case 'b': bp=read_hex(buffer+1);@+continue;
 case 'v': verbose=read_hex(buffer+1).l;@+continue;
@@ -467,12 +469,14 @@ case '-':@+ if (sscanf(buffer+1,"%d",&n)!=1 || n<0) goto what_say;
 case 'l':@+ if (sscanf(buffer+1,"%d",&n)!=1 || n<0) goto what_say;
   if (n>=lring_size) goto what_say;
   printf("  l[%d]=%08x%08x\n",n,l[n].o.h,l[n].o.l);@+continue;
+@:l}{\|l (ring of local registers)@>
 case 'm': tmp=mem_read(read_hex(buffer+1));
   printf("  m[%s]=%08x%08x\n",buffer+1,tmp.h,tmp.l);@+continue;
 
 @ The register stack pointers, rO and rS, are not kept up to date
 in the |g| array. Therefore we have to deduce their values by
 examining the pipeline.
+@:g}{\|g (global registers)@>
 
 @<Cases...@>=
 case 'g':@+ if (sscanf(buffer+1,"%d",&n)!=1 || n<0) goto what_say;
@@ -503,6 +507,7 @@ case 'S': print_cache(Scache,buffer[1]=='*');@+continue;
 case 'p': print_pipe();@+print_locks();@+continue;
 case 's': print_stats();@+continue;
 case 'i':@+ if (sscanf(buffer+1,"%d",&n)==1) g[rI].o=incr(zero_octa,n);
+@:g}{\|g (global registers)@>
   continue;
 
 @ @<Cases...@>=
@@ -535,6 +540,7 @@ case 'd':@+if (ticks.l)
    DTcache->set[0][0].tag=zero_octa;
    DTcache->set[0][0].data[0]=seven_octa;
    g[rK].o=neg_one;
+@:g}{\|g (global registers)@>
    page_bad=false;
    page_mask=neg_one;
    inst_ptr.p=(specnode*)1;
@@ -555,9 +561,6 @@ case '!':@+ { register int j;
 @ @<Glob...@>=
 bool silent=false;
 bool bad_address;
-extern bool page_bad;
-extern octa page_mask;
-extern int page_r,page_s,page_b[5];
 extern octa zero_octa;
 extern octa neg_one;
 octa seven_octa={0,7};

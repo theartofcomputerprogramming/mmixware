@@ -4289,6 +4289,7 @@ for (j=0;j<5;j++) {
 }
 ITcache->filler_ctl.ptr_c=(void*)&IPTco[0];@+
 DTcache->filler_ctl.ptr_c=(void*)&DPTco[0];
+page_bad=true;
 
 @ Page table calculations are invoked by a coroutine of type |fill_from_virt|,
 which is used to fill the IT-cache or DT-cache. The calling conventions of
@@ -4327,14 +4328,14 @@ case fill_from_virt: {@+register cache *c=(cache *)data->ptr_a;
 kept unpacked in several global variables |page_r|, |page_s|, etc., for
 convenience. Whenever rV changes, we recompute all these variables.
 
-@<Glob...@>=
-unsigned int page_n; /* the 10-bit |n| field of rV, times 8 */
-int page_r; /* the 27-bit |r| field of rV */
-int page_s; /* the 8-bit |s| field of rV */
-int page_f; /* the 3-bit |f| field of rV */
-int page_b[5]; /* the 4-bit |b| fields of rV; |page_b[0]=0| */
-octa page_mask; /* the least significant |s| bits */
-bool page_bad=true; /* does rV violate the rules? */
+@<External v...@>=
+Extern unsigned int page_n; /* the 10-bit |n| field of rV, times 8 */
+Extern int page_r; /* the 27-bit |r| field of rV */
+Extern int page_s; /* the 8-bit |s| field of rV */
+Extern int page_f; /* the 3-bit |f| field of rV */
+Extern int page_b[5]; /* the 4-bit |b| fields of rV; |page_b[0]=0| */
+Extern octa page_mask; /* the least significant |s| bits */
+Extern bool page_bad; /* does rV violate the rules? */
 
 @ @<Update the \\{page} variables@>=
 {@+octa rv;
